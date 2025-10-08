@@ -106,14 +106,7 @@ jobs:
         fi
         
         # Create a comprehensive prompt for code review with committable suggestions
-        REVIEW_PROMPT="Please perform a comprehensive code review of the following files that were changed in this pull request: $CHANGED_FILES. For each changed file, please: 1) Analyze the code quality and structure, 2) Identify potential bugs, security issues, or performance problems, 3) Suggest improvements and best practices using GitHub's suggested changes format, 4) Check for proper error handling and edge cases, 5) Verify code follows common conventions, 6) Look for missing tests or documentation. 
-
-When providing code suggestions, please format them as GitHub suggested changes using this syntax:
-\`\`\`suggestion
-// Your improved code here
-\`\`\`
-
-This allows the suggestions to be applied with one click directly in the PR. Provide specific line-by-line feedback where applicable, and conclude with an overall assessment and recommendation."
+        REVIEW_PROMPT="Please perform a comprehensive code review of the following files that were changed in this pull request: $CHANGED_FILES. For each changed file, please: 1) Analyze the code quality and structure, 2) Identify potential bugs, security issues, or performance problems, 3) Suggest improvements and best practices using GitHub's suggested changes format, 4) Check for proper error handling and edge cases, 5) Verify code follows common conventions, 6) Look for missing tests or documentation. When providing code suggestions, please format them as GitHub suggested changes using this syntax: three backticks followed by 'suggestion', then your improved code, then three backticks. This allows the suggestions to be applied with one click directly in the PR. Provide specific line-by-line feedback where applicable, and conclude with an overall assessment and recommendation."
 
         echo "Running Copilot CLI with code review prompt..."
         
@@ -165,17 +158,13 @@ This allows the suggestions to be applied with one click directly in the PR. Pro
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number,
-              body: `## 🤖 Copilot Code Review with Suggested Changes
-              
-This review includes ${suggestions.length} suggested changes that can be committed with one click.
-
-${reviewContent}`,
+              body: `## 🤖 Copilot Code Review with Suggested Changes\n\nThis review includes ${suggestions.length} suggested changes that can be committed with one click.\n\n${reviewContent}`,
               event: 'COMMENT'
             });
             
             console.log(`Posted review with suggestions: ${review.html_url}`);
           }
-        
+          
     - name: Generate Documentation Updates
       id: doc-updates
       env:
