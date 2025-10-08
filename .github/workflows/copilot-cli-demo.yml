@@ -31,20 +31,20 @@ jobs:
         
     - name: Verify GitHub Authentication
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GH_COPILOT_CLI }}
       run: |
         # Check if we can authenticate with GitHub
         echo "Checking GitHub authentication..."
         if [ -z "$GITHUB_TOKEN" ]; then
-          echo "ERROR: GITHUB_TOKEN is not set"
+          echo "ERROR: GH_COPILOT_CLI secret is not set"
           exit 1
         else
-          echo "GITHUB_TOKEN is available"
+          echo "GH_COPILOT_CLI token is available"
         fi
         
     - name: Run Copilot CLI in silent mode
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GH_COPILOT_CLI }}
       run: |
         # Create a simple test file for Copilot to work with
         echo "console.log('Hello, World!');" > test.js
@@ -54,7 +54,7 @@ jobs:
         echo '{"trustedDirs": ["'"$(pwd)"'"]}' > ~/.config/copilot-config.json
         
         # Verify token is available for Copilot
-        echo "Using GITHUB_TOKEN for authentication"
+        echo "Using GH_COPILOT_CLI secret for authentication"
         
         # Run Copilot CLI with a dummy prompt in non-interactive mode
         copilot --prompt "Explain what the test.js file does" --allow-all-tools
