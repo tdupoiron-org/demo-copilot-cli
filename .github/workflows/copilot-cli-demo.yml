@@ -13,6 +13,9 @@ on:
 jobs:
   copilot-cli-demo:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     
     steps:
     - name: Checkout repository
@@ -26,9 +29,22 @@ jobs:
         # Verify installation
         copilot --version
         
+    - name: Verify GitHub Authentication
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Check if we can authenticate with GitHub
+        echo "Checking GitHub authentication..."
+        if [ -z "$GITHUB_TOKEN" ]; then
+          echo "ERROR: GITHUB_TOKEN is not set"
+          exit 1
+        else
+          echo "GITHUB_TOKEN is available"
+        fi
+        
     - name: Run Copilot CLI in silent mode
       env:
-        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # Create a simple test file for Copilot to work with
         echo "console.log('Hello, World!');" > test.js
@@ -36,6 +52,9 @@ jobs:
         # Set up trusted directory to avoid interactive prompts
         mkdir -p ~/.config
         echo '{"trustedDirs": ["'"$(pwd)"'"]}' > ~/.config/copilot-config.json
+        
+        # Verify token is available for Copilot
+        echo "Using GITHUB_TOKEN for authentication"
         
         # Run Copilot CLI with a dummy prompt in non-interactive mode
         copilot --prompt "Explain what the test.js file does" --allow-all-tools
