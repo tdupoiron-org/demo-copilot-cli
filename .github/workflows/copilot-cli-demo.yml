@@ -84,19 +84,7 @@ jobs:
         fi
         
         # Create a comprehensive prompt for code review
-        REVIEW_PROMPT="Please perform a comprehensive code review of the following files that were changed in this pull request:
-
-$CHANGED_FILES
-
-For each changed file, please:
-1. Analyze the code quality and structure
-2. Identify potential bugs, security issues, or performance problems
-3. Suggest improvements and best practices
-4. Check for proper error handling and edge cases
-5. Verify code follows common conventions
-6. Look for missing tests or documentation
-
-Please provide a detailed review with specific line-by-line feedback where applicable, and conclude with an overall assessment and recommendation."
+        REVIEW_PROMPT="Please perform a comprehensive code review of the following files that were changed in this pull request: $CHANGED_FILES. For each changed file, please: 1) Analyze the code quality and structure, 2) Identify potential bugs, security issues, or performance problems, 3) Suggest improvements and best practices, 4) Check for proper error handling and edge cases, 5) Verify code follows common conventions, 6) Look for missing tests or documentation. Please provide a detailed review with specific line-by-line feedback where applicable, and conclude with an overall assessment and recommendation."
 
         echo "Running Copilot CLI with code review prompt..."
         
@@ -136,22 +124,7 @@ Please provide a detailed review with specific line-by-line feedback where appli
         fi
         
         # Create prompt for documentation updates
-        DOC_PROMPT="Based on the code changes in this pull request, please suggest updates to the project documentation.
-
-Changed files:
-$CHANGED_FILES
-
-Current README.md content:
-$README_CONTENT
-
-Please analyze the changes and suggest:
-1. Updates to the README.md file to reflect new features or changes
-2. New sections that might be needed
-3. Updated installation or usage instructions if applicable
-4. New examples or code snippets if relevant
-5. Updated API documentation if interfaces changed
-
-Provide specific, actionable suggestions for improving the documentation."
+        DOC_PROMPT="Based on the code changes in this pull request, please suggest updates to the project documentation. Changed files: $CHANGED_FILES. Current README.md content: $README_CONTENT. Please analyze the changes and suggest: 1) Updates to the README.md file to reflect new features or changes, 2) New sections that might be needed, 3) Updated installation or usage instructions if applicable, 4) New examples or code snippets if relevant, 5) Updated API documentation if interfaces changed. Provide specific, actionable suggestions for improving the documentation."
 
         echo "Analyzing documentation needs..."
         
