@@ -18,19 +18,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Install Copilot CLI extension
-      env:
-        GH_TOKEN: ${{ github.token }}
+    - name: Install Copilot CLI
       run: |
-        # Verify GitHub CLI is available (pre-installed on runners)
-        gh --version
+        # Install Copilot CLI via npm (requires Node.js 22+ and npm 10+)
+        npm install -g @github/copilot
         
-        # Install Copilot CLI extension
-        gh extension install github/gh-copilot
+        # Verify installation
+        copilot --version
         
     - name: Run Copilot CLI in silent mode
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         # Create a simple test file for Copilot to work with
         echo "console.log('Hello, World!');" > test.js
