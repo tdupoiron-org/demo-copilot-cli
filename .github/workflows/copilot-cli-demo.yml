@@ -1,0 +1,54 @@
+name: Copilot CLI Demo
+
+on:
+  # Trigger on push to main branch
+  push:
+    branches: [ main ]
+  # Trigger on pull requests to main branch
+  pull_request:
+    branches: [ main ]
+  # Allow manual triggering from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  copilot-cli-demo:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install Copilot CLI extension
+      run: |
+        # Verify GitHub CLI is available (pre-installed on runners)
+        gh --version
+        
+        # Install Copilot CLI extension
+        gh extension install github/gh-copilot
+        
+    - name: Authenticate with GitHub
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Authenticate GitHub CLI with the provided token
+        echo "$GITHUB_TOKEN" | gh auth login --with-token
+        
+    - name: Run Copilot CLI in silent mode
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Create a simple test file for Copilot to work with
+        echo "console.log('Hello, World!');" > test.js
+        
+        # Set up trusted directory to avoid interactive prompts
+        mkdir -p ~/.config
+        echo '{"trustedDirs": ["'"$(pwd)"'"]}' > ~/.config/copilot-config.json
+        
+        # Run Copilot CLI with a dummy prompt in non-interactive mode
+        copilot --prompt "Explain what the test.js file does" --allow-all-tools
+        
+    - name: Display results
+      run: |
+        echo "Copilot CLI demo completed successfully!"
+        echo "Repository contents:"
+        ls -la
