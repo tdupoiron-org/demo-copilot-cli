@@ -237,15 +237,21 @@ jobs:
           
           ---
           
-          ### 📋 Code Review
+          <details>
+          <summary>📋 Code Review</summary>
           
           ${reviewContent}
           
+          </details>
+          
           ---
           
-          ### 📝 Documentation Suggestions
+          <details>
+          <summary>📝 Documentation Suggestions</summary>
           
           ${docsContent}
+          
+          </details>
           
           ---
           
