@@ -28,13 +28,6 @@ jobs:
         # Install Copilot CLI extension
         gh extension install github/gh-copilot
         
-    - name: Authenticate with GitHub
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        # Authenticate GitHub CLI with the provided token
-        echo "$GITHUB_TOKEN" | gh auth login --with-token
-        
     - name: Run Copilot CLI in silent mode
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
