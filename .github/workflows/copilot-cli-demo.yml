@@ -1,25 +1,58 @@
-name: Copilot CLI Demo
+name: Copilot PR Review & Documentation
 
 on:
-  # Trigger on push to main branch
-  push:
-    branches: [ main ]
   # Trigger on pull requests to main branch
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened]
   # Allow manual triggering from GitHub UI
   workflow_dispatch:
 
 jobs:
-  copilot-cli-demo:
+  copilot-pr-review:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       actions: read
+      pull-requests: write
+      issues: write
     
     steps:
-    - name: Checkout repository
+    - name: Checkout PR code
       uses: actions/checkout@v4
+      with:
+        # Checkout the PR branch
+        ref: ${{ github.event.pull_request.head.sha }}
+        # Fetch full history for proper diff analysis
+        fetch-depth: 0
+        
+    - name: Get changed files
+      id: changed-files
+      run: |
+        # Get the list of changed files in this PR
+        echo "Getting changed files between base and head..."
+        
+        # Get base commit
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        
+        echo "Base SHA: $BASE_SHA"
+        echo "Head SHA: $HEAD_SHA"
+        
+        # Get changed files
+        CHANGED_FILES=$(git diff --name-only $BASE_SHA..$HEAD_SHA)
+        echo "Changed files:"
+        echo "$CHANGED_FILES"
+        
+        # Save to output for later steps
+        echo "files<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        # Also save as environment variable
+        echo "CHANGED_FILES<<EOF" >> $GITHUB_ENV
+        echo "$CHANGED_FILES" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
       
     - name: Install Copilot CLI
       run: |
@@ -29,38 +62,180 @@ jobs:
         # Verify installation
         copilot --version
         
-    - name: Verify GitHub Authentication
+    - name: Run Copilot Code Review
+      id: code-review
       env:
         GITHUB_TOKEN: ${{ secrets.GH_COPILOT_CLI }}
+      continue-on-error: true
       run: |
-        # Check if we can authenticate with GitHub
-        echo "Checking GitHub authentication..."
-        if [ -z "$GITHUB_TOKEN" ]; then
-          echo "ERROR: GH_COPILOT_CLI secret is not set"
-          exit 1
-        else
-          echo "GH_COPILOT_CLI token is available"
-        fi
-        
-    - name: Run Copilot CLI in silent mode
-      env:
-        GITHUB_TOKEN: ${{ secrets.GH_COPILOT_CLI }}
-      run: |
-        # Create a simple test file for Copilot to work with
-        echo "console.log('Hello, World!');" > test.js
-        
         # Set up trusted directory to avoid interactive prompts
         mkdir -p ~/.config
         echo '{"trustedDirs": ["'"$(pwd)"'"]}' > ~/.config/copilot-config.json
         
-        # Verify token is available for Copilot
-        echo "Using GH_COPILOT_CLI secret for authentication"
+        echo "🔍 Starting Copilot Code Review..."
+        echo "Changed files in this PR:"
+        echo "$CHANGED_FILES"
         
-        # Run Copilot CLI with a dummy prompt in non-interactive mode
-        copilot --prompt "Explain what the test.js file does" --allow-all-tools
+        # Check if we have changed files to review
+        if [ -z "$CHANGED_FILES" ]; then
+          echo "No files changed in this PR. Skipping code review."
+          echo "No files were changed in this pull request." > copilot-review.md
+          exit 0
+        fi
         
-    - name: Display results
+        # Create a comprehensive prompt for code review
+        REVIEW_PROMPT="Please perform a comprehensive code review of the following files that were changed in this pull request:
+
+$CHANGED_FILES
+
+For each changed file, please:
+1. Analyze the code quality and structure
+2. Identify potential bugs, security issues, or performance problems
+3. Suggest improvements and best practices
+4. Check for proper error handling and edge cases
+5. Verify code follows common conventions
+6. Look for missing tests or documentation
+
+Please provide a detailed review with specific line-by-line feedback where applicable, and conclude with an overall assessment and recommendation."
+
+        echo "Running Copilot CLI with code review prompt..."
+        
+        # Run Copilot CLI for code review with error handling
+        if REVIEW_OUTPUT=$(copilot --prompt "$REVIEW_PROMPT" --allow-all-tools 2>&1); then
+          echo "Code review completed successfully!"
+          echo "Review output length: ${#REVIEW_OUTPUT} characters"
+          echo "$REVIEW_OUTPUT" > copilot-review.md
+        else
+          echo "⚠️ Code review failed, but continuing workflow..."
+          echo "Error occurred during code review: $REVIEW_OUTPUT"
+          echo "⚠️ Code review could not be completed due to an error. Please review the changes manually." > copilot-review.md
+        fi
+        
+        # Save to GitHub output (truncate if too long)
+        REVIEW_CONTENT=$(cat copilot-review.md)
+        echo "review<<EOF" >> $GITHUB_OUTPUT
+        echo "$REVIEW_CONTENT" | head -c 50000 >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Generate Documentation Updates
+      id: doc-updates
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_COPILOT_CLI }}
+      continue-on-error: true
       run: |
-        echo "Copilot CLI demo completed successfully!"
-        echo "Repository contents:"
-        ls -la
+        echo "📝 Generating documentation updates..."
+        
+        # Read current README with error handling
+        README_CONTENT=""
+        if [ -f "README.md" ]; then
+          README_CONTENT=$(cat README.md)
+          echo "Found existing README.md (${#README_CONTENT} characters)"
+        else
+          echo "No README.md found in repository"
+          README_CONTENT="No README.md file exists in this repository."
+        fi
+        
+        # Create prompt for documentation updates
+        DOC_PROMPT="Based on the code changes in this pull request, please suggest updates to the project documentation.
+
+Changed files:
+$CHANGED_FILES
+
+Current README.md content:
+$README_CONTENT
+
+Please analyze the changes and suggest:
+1. Updates to the README.md file to reflect new features or changes
+2. New sections that might be needed
+3. Updated installation or usage instructions if applicable
+4. New examples or code snippets if relevant
+5. Updated API documentation if interfaces changed
+
+Provide specific, actionable suggestions for improving the documentation."
+
+        echo "Analyzing documentation needs..."
+        
+        # Run Copilot CLI for documentation analysis with error handling
+        if DOC_OUTPUT=$(copilot --prompt "$DOC_PROMPT" --allow-all-tools 2>&1); then
+          echo "Documentation analysis completed successfully!"
+          echo "Documentation output length: ${#DOC_OUTPUT} characters"
+          echo "$DOC_OUTPUT" > copilot-docs.md
+        else
+          echo "⚠️ Documentation analysis failed, but continuing workflow..."
+          echo "Error occurred during documentation analysis: $DOC_OUTPUT"
+          echo "⚠️ Documentation suggestions could not be generated due to an error. Please review documentation needs manually." > copilot-docs.md
+        fi
+        
+        # Save to GitHub output (truncate if too long)
+        DOC_CONTENT=$(cat copilot-docs.md)
+        echo "docs<<EOF" >> $GITHUB_OUTPUT
+        echo "$DOC_CONTENT" | head -c 50000 >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Post PR Comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          
+          // Read the review and documentation outputs
+          let reviewContent = '';
+          let docsContent = '';
+          
+          try {
+            reviewContent = fs.readFileSync('copilot-review.md', 'utf8');
+          } catch (e) {
+            reviewContent = 'Code review could not be generated.';
+          }
+          
+          try {
+            docsContent = fs.readFileSync('copilot-docs.md', 'utf8');
+          } catch (e) {
+            docsContent = 'Documentation suggestions could not be generated.';
+          }
+          
+          // Create formatted comment
+          const comment = `## 🤖 Copilot PR Analysis
+          
+          **Pull Request:** #${{ github.event.number }}
+          **Branch:** \`${{ github.event.pull_request.head.ref }}\`
+          **Changed Files:** ${{ steps.changed-files.outputs.files }}
+          
+          ---
+          
+          ### 📋 Code Review
+          
+          ${reviewContent}
+          
+          ---
+          
+          ### 📝 Documentation Suggestions
+          
+          ${docsContent}
+          
+          ---
+          
+          *This analysis was generated automatically by GitHub Copilot CLI in the workflow.*
+          `;
+          
+          // Post comment to PR
+          const { data: prComment } = await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: comment
+          });
+          
+          console.log(`Posted comment: ${prComment.html_url}`);
+          
+    - name: Summary
+      run: |
+        echo "✅ Copilot PR Review & Documentation workflow completed!"
+        echo "📊 Analysis Summary:"
+        echo "  - Changed files analyzed: $(echo '${{ env.CHANGED_FILES }}' | wc -l)"
+        echo "  - Code review generated: $([ -f copilot-review.md ] && echo 'Yes' || echo 'No')"
+        echo "  - Documentation suggestions generated: $([ -f copilot-docs.md ] && echo 'Yes' || echo 'No')"
+        echo "  - PR comment posted: Yes"
+        echo ""
+        echo "🔗 Check the PR comments for detailed analysis results."
