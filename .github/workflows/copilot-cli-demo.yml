@@ -19,6 +19,8 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Install Copilot CLI extension
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
         # Verify GitHub CLI is available (pre-installed on runners)
         gh --version
