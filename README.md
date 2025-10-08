@@ -1,6 +1,6 @@
-# Copilot CLI PR Review & Documentation
+# Copilot CLI PR Review with One-Click Code Suggestions
 
-This repository demonstrates how to use GitHub Copilot CLI in a GitHub Actions workflow to automatically review pull requests and suggest documentation updates.
+This repository demonstrates how to use GitHub Copilot CLI in a GitHub Actions workflow to automatically review pull requests and provide **one-click committable code suggestions**.
 
 ## What it does
 
@@ -9,14 +9,17 @@ The workflow (`/.github/workflows/copilot-cli-demo.yml`) automatically:
 1. **Triggers on Pull Requests** - Runs when PRs are opened, updated, or reopened
 2. **Analyzes Changed Files** - Identifies all files modified in the PR
 3. **Performs AI Code Review** - Uses Copilot CLI to review code quality, security, and best practices
-4. **Suggests Documentation Updates** - Analyzes changes and recommends README/documentation improvements
-5. **Posts PR Comments** - Automatically comments on the PR with review results and documentation suggestions
+4. **Generates Suggested Changes** - Creates GitHub-formatted suggestions that can be committed with one click
+5. **Suggests Documentation Updates** - Analyzes changes and recommends README/documentation improvements
+6. **Posts PR Comments** - Automatically comments on the PR with review results and committable suggestions
 
 ## Key Features
 
 - 🤖 **Automated Code Review**: Comprehensive analysis of code quality, security, and best practices
+- ✨ **One-Click Suggestions**: Code improvements formatted as GitHub suggested changes
+- 🔧 **Copilot Autofix Integration**: Leverages GitHub's autofix capabilities for security issues
 - 📝 **Documentation Analysis**: Intelligent suggestions for updating project documentation
-- 💬 **PR Integration**: Posts detailed analysis directly as PR comments
+- 💬 **PR Integration**: Posts detailed analysis directly as PR comments with clickable suggestions
 - ⚡ **Non-interactive execution**: Runs completely automated using Copilot CLI flags
 - 🔒 **Secure Authentication**: Uses GitHub's built-in tokens and secrets
 - 🛡️ **Error Handling**: Continues workflow execution even if individual steps fail
@@ -26,8 +29,35 @@ The workflow (`/.github/workflows/copilot-cli-demo.yml`) automatically:
 
 1. **Create a Pull Request** - Open a PR against the main branch to trigger the workflow
 2. **Manual trigger**: Go to Actions tab → "Copilot PR Review & Documentation" → "Run workflow"
-3. **View results**: Check the PR comments for detailed analysis and suggestions
-4. **Review logs**: View workflow logs for technical details and debugging information
+3. **View results**: Check the PR comments for detailed analysis and one-click suggestions
+4. **Apply suggestions**: Click the "Commit suggestion" button on any suggested change
+5. **Review logs**: View workflow logs for technical details and debugging information
+
+## One-Click Suggestions
+
+The workflow now provides **GitHub suggested changes** that can be committed directly from the PR:
+
+- **Formatted Suggestions**: Code improvements are formatted using GitHub's `suggestion` syntax
+- **Direct Commits**: Click "Commit suggestion" to apply changes instantly
+- **Multiple Suggestions**: Each improvement is a separate, committable suggestion
+- **Review Integration**: Suggestions appear as part of the automated code review
+
+### Example Suggestion Format
+
+When Copilot finds improvements, they appear like this in PR comments:
+
+```suggestion
+// Improved code with better error handling
+try {
+  const result = await someAsyncOperation();
+  return result;
+} catch (error) {
+  console.error('Operation failed:', error);
+  throw new Error('Failed to complete operation');
+}
+```
+
+You can then click **"Commit suggestion"** to apply this change directly to your branch.
 
 ## Setup Requirements
 

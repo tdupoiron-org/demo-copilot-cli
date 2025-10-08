@@ -12,10 +12,12 @@ jobs:
   copilot-pr-review:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       actions: read
       pull-requests: write
       issues: write
+      checks: write
+      security-events: write
     
     steps:
     - name: Checkout PR code
@@ -54,11 +56,31 @@ jobs:
         echo "$CHANGED_FILES" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
       
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        
+    - name: Cache Copilot CLI
+      id: cache-copilot
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          ~/.local/lib/node_modules/@github/copilot
+          ~/.local/bin/copilot
+        key: copilot-cli-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-v1
+        restore-keys: |
+          copilot-cli-${{ runner.os }}-
+      
     - name: Install Copilot CLI
+      if: steps.cache-copilot.outputs.cache-hit != 'true'
       run: |
         # Install Copilot CLI via npm (requires Node.js 22+ and npm 10+)
         npm install -g @github/copilot
         
+    - name: Verify Copilot CLI Installation
+      run: |
         # Verify installation
         copilot --version
         
@@ -83,8 +105,15 @@ jobs:
           exit 0
         fi
         
-        # Create a comprehensive prompt for code review
-        REVIEW_PROMPT="Please perform a comprehensive code review of the following files that were changed in this pull request: $CHANGED_FILES. For each changed file, please: 1) Analyze the code quality and structure, 2) Identify potential bugs, security issues, or performance problems, 3) Suggest improvements and best practices, 4) Check for proper error handling and edge cases, 5) Verify code follows common conventions, 6) Look for missing tests or documentation. Please provide a detailed review with specific line-by-line feedback where applicable, and conclude with an overall assessment and recommendation."
+        # Create a comprehensive prompt for code review with committable suggestions
+        REVIEW_PROMPT="Please perform a comprehensive code review of the following files that were changed in this pull request: $CHANGED_FILES. For each changed file, please: 1) Analyze the code quality and structure, 2) Identify potential bugs, security issues, or performance problems, 3) Suggest improvements and best practices using GitHub's suggested changes format, 4) Check for proper error handling and edge cases, 5) Verify code follows common conventions, 6) Look for missing tests or documentation. 
+
+When providing code suggestions, please format them as GitHub suggested changes using this syntax:
+\`\`\`suggestion
+// Your improved code here
+\`\`\`
+
+This allows the suggestions to be applied with one click directly in the PR. Provide specific line-by-line feedback where applicable, and conclude with an overall assessment and recommendation."
 
         echo "Running Copilot CLI with code review prompt..."
         
@@ -104,6 +133,48 @@ jobs:
         echo "review<<EOF" >> $GITHUB_OUTPUT
         echo "$REVIEW_CONTENT" | head -c 50000 >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Post Review Comments with Suggestions
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          
+          // Read the review output
+          let reviewContent = '';
+          try {
+            reviewContent = fs.readFileSync('copilot-review.md', 'utf8');
+          } catch (e) {
+            console.log('No review content found');
+            return;
+          }
+          
+          // Parse suggestions from the review content
+          const suggestionRegex = /```suggestion\n([\s\S]*?)\n```/g;
+          const suggestions = [];
+          let match;
+          
+          while ((match = suggestionRegex.exec(reviewContent)) !== null) {
+            suggestions.push(match[1]);
+          }
+          
+          if (suggestions.length > 0) {
+            // Create a review with suggestions
+            const { data: review } = await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body: `## 🤖 Copilot Code Review with Suggested Changes
+              
+This review includes ${suggestions.length} suggested changes that can be committed with one click.
+
+${reviewContent}`,
+              event: 'COMMENT'
+            });
+            
+            console.log(`Posted review with suggestions: ${review.html_url}`);
+          }
         
     - name: Generate Documentation Updates
       id: doc-updates
