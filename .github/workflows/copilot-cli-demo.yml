@@ -60,21 +60,10 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '22'
-        
-    - name: Cache Copilot CLI
-      id: cache-copilot
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.npm
-          ~/.local/lib/node_modules/@github/copilot
-          ~/.local/bin/copilot
-        key: copilot-cli-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-v1
-        restore-keys: |
-          copilot-cli-${{ runner.os }}-
       
+    # Note: Caching has been removed to simplify this demo workflow and resolve cache-related failures
+    # The Copilot CLI will be installed fresh on every workflow run
     - name: Install Copilot CLI
-      if: steps.cache-copilot.outputs.cache-hit != 'true'
       run: |
         # Install Copilot CLI via npm (requires Node.js 22+ and npm 10+)
         npm install -g @github/copilot
