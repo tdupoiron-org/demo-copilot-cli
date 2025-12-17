@@ -61,6 +61,8 @@ jobs:
       with:
         node-version: '22'
       
+    # Note: Caching has been removed to simplify this demo workflow and resolve cache-related failures
+    # The Copilot CLI will be installed fresh on every workflow run
     - name: Install Copilot CLI
       run: |
         # Install Copilot CLI via npm (requires Node.js 22+ and npm 10+)
