@@ -2,9 +2,38 @@
 
 This repository demonstrates how to use GitHub Copilot CLI in a GitHub Actions workflow to automatically review pull requests and provide **one-click committable code suggestions**.
 
+## Two demo styles (Classic vs Agentic)
+
+This repo ships **two** PR-review workflows so you can demo them side by side. Both run
+on every pull request to `main` and post **separately-labeled** comments.
+
+| | **Classic (PAT)** | **Agentic (gh-aw)** |
+|---|---|---|
+| File(s) | `.github/workflows/copilot-cli-demo.yml` | `.github/workflows/copilot-agentic-review.md` → compiled `.lock.yml` |
+| Authoring | Hand-written Actions YAML (bash + `github-script`) | Natural-language markdown, compiled by `gh aw compile` |
+| Engine | Standalone `@github/copilot` CLI installed on the runner | GitHub Agentic Workflows (`gh aw`) running Copilot |
+| Inference auth | Fine-grained **PAT** in `secrets.GH_COPILOT_CLI` | Built-in `GITHUB_TOKEN` via `permissions: copilot-requests: write` — **no PAT** |
+| Billing | The PAT owner's Copilot quota | The **organization** (per-run token) |
+| Guardrails | Custom error handling in the workflow | Sandbox, network firewall, gated **safe-outputs**, threat detection |
+| PR comment header | `🤖 Copilot PR Analysis — Classic (PAT)` | `🤖 Copilot PR Analysis — Agentic (gh-aw)` |
+
+**Why two?** A 2026-06-11 changelog let *GitHub Agentic Workflows* drop the PAT and use
+the built-in token (`copilot-requests: write`). That mechanism is implemented by the
+gh-aw compiler — the standalone Copilot CLI still requires a PAT — so the Agentic
+workflow is the only supported way to run PR review without managing a long-lived token.
+
+### Prerequisites
+- **Classic:** repository secret `GH_COPILOT_CLI` set to a fine-grained PAT with the
+  "Copilot Requests" permission.
+- **Agentic:** org-owned repo with the Copilot policy *"Allow use of Copilot CLI billed
+  to the organization"* enabled (on by default when the "Copilot CLI" policy is on).
+  Requires the `gh aw` extension (`gh extension install githubnext/gh-aw`) to edit and
+  recompile. After editing `copilot-agentic-review.md`, run `gh aw compile` and commit
+  both the `.md` and the generated `.lock.yml`.
+
 ## What it does
 
-The workflow (`/.github/workflows/copilot-cli-demo.yml`) automatically:
+The Classic workflow (`/.github/workflows/copilot-cli-demo.yml`) automatically:
 
 1. **Triggers on Pull Requests** - Runs when PRs are opened, updated, or reopened
 2. **Analyzes Changed Files** - Identifies all files modified in the PR
@@ -28,7 +57,7 @@ The workflow (`/.github/workflows/copilot-cli-demo.yml`) automatically:
 ## How to use
 
 1. **Create a Pull Request** - Open a PR against the main branch to trigger the workflow
-2. **Manual trigger**: Go to Actions tab → "Copilot PR Review & Documentation" → "Run workflow"
+2. **Manual trigger**: Go to Actions tab → "PR Review — Classic (plain Actions + Copilot CLI, PAT)" or "PR Review — Agentic (gh-aw, copilot-requests)" → "Run workflow"
 3. **View results**: Check the PR comments for detailed analysis and one-click suggestions
 4. **Apply suggestions**: Click the "Commit suggestion" button on any suggested change
 5. **Review logs**: View workflow logs for technical details and debugging information
