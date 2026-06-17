@@ -1,4 +1,14 @@
-name: Copilot PR Review & Documentation
+# =============================================================================
+# CLASSIC STYLE — plain GitHub Actions + Copilot CLI (PAT auth)
+# -----------------------------------------------------------------------------
+# This workflow installs the standalone `@github/copilot` CLI on the runner and
+# authenticates inference with a fine-grained PAT stored as `secrets.GH_COPILOT_CLI`.
+# It is the hand-written / imperative approach.
+#
+# For the AGENTIC alternative (gh-aw, no PAT, billed to the org via
+# `copilot-requests: write`), see `.github/workflows/copilot-agentic-review.md`.
+# =============================================================================
+name: PR Review — Classic (plain Actions + Copilot CLI, PAT)
 
 on:
   # Trigger on pull requests to main branch
@@ -147,7 +157,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number,
-              body: `## 🤖 Copilot Code Review with Suggested Changes\n\nThis review includes ${suggestions.length} suggested changes that can be committed with one click.\n\n${reviewContent}`,
+              body: `## 🤖 Copilot Code Review — Classic (PAT) with Suggested Changes\n\nThis review includes ${suggestions.length} suggested changes that can be committed with one click.\n\n${reviewContent}`,
               event: 'COMMENT'
             });
             
@@ -218,7 +228,7 @@ jobs:
           }
           
           // Create formatted comment
-          const comment = `## 🤖 Copilot PR Analysis
+          const comment = `## 🤖 Copilot PR Analysis — Classic (PAT)
           
           **Pull Request:** #${{ github.event.number }}
           **Branch:** \`${{ github.event.pull_request.head.ref }}\`
@@ -238,7 +248,7 @@ jobs:
           
           ---
           
-          *This analysis was generated automatically by GitHub Copilot CLI in the workflow.*
+          *This analysis was generated automatically by the standalone GitHub Copilot CLI (Classic / PAT workflow).*
           `;
           
           // Post comment to PR
